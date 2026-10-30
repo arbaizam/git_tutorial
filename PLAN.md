@@ -1,61 +1,64 @@
 # Git Tutorial — Plan
 
-Working doc for building an interactive git tutorial for our team. Decisions are settled; open questions need answers before scenarios are written.
+Working doc for building an interactive git tutorial for our team.
 
 ## Decisions
 
 | Area | Decision |
 |---|---|
-| Audience | Our team: strong in scientific computing, new to git and team development workflows. |
-| Format | Interactive simulator (safe, resettable) **+** a real sandbox repo for hands-on practice in VSCode and Databricks. |
-| Tech | Plain HTML/CSS/JS. No build step, no npm, no CDN — all libraries vendored. Must work by double-clicking `index.html` (`file://`), so no ES modules and no `fetch()`. |
-| Remote | Azure DevOps Repos (matches production). Built on GitHub, then mirrored to ADO via a second remote (doubles as an exercise). |
-| Simulator layout | Three working panes — **Databricks Git folder / VSCode Source Control / terminal** — plus an **ADO Repos** screen for PRs, and a live commit graph showing local vs. remote. |
+| Audience | Our team: strong in scientific computing; git experience ranges from none to basic commit/push (lead engineer excepted). |
+| Format | Interactive simulator (safe, resettable) **+** a real sandbox repo in ADO for hands-on practice. Knowledge checks per scenario; no completion tracking. |
+| Tech | Plain HTML/CSS/JS. No build step, no npm, no CDN (all libraries vendored). Must work by double-clicking `index.html` (`file://`), so no ES modules and no `fetch()`. |
+| Remote | Azure DevOps Repos. Built on GitHub, then mirrored to ADO via a second remote (this doubles as an exercise). ADO org/project names stay out of this repo because it is **public**; use `{org}/{project}` placeholders. |
+| Simulator layout | Three working panes (**Databricks Git folder / VSCode Source Control / terminal**), an **ADO Repos** screen for PRs, and a live commit graph showing local vs. remote. |
 | Content | Scenarios live in a separate data file (`scenarios.js`), so anyone can add one via PR without touching the engine. |
-| Progress | Saved in each person's browser (`localStorage`). No central completion tracking unless Q18 says otherwise. |
-| Setup chapter | ADO authentication (Entra ID / PAT in Databricks; Git Credential Manager in VSCode) and clone URLs (`dev.azure.com/{org}/{project}/_git/{repo}`). |
+| Examples | Repo `rules_engine`, data `mpa`, pipelines `rules_engine - staging release` / `rules_engine - prod release`. |
 
-## Open questions
+## Our environment (from answers)
 
-Reply by number. "Skip" or "don't know" is fine.
+- Windows laptops. VSCode: Source Control panel + terminal, mixed.
+- Azure Databricks Git folders, authenticated with a PAT. One Git folder per person (never shared), so every person and every Git folder is its own clone.
+- Notebooks are currently `.ipynb`; we want `.py` source format.
+- Databricks Asset Bundles, deployed by ADO Pipelines. All prod code lives in `main`.
+- Policy: no direct commits to `main`. Every change goes through a PR with specific required reviewers (the lead engineer and the plan author). PRs complete with **squash**.
+- No ADO Boards linking. No code is shared between VSCode and Databricks today. Only convention: the default branch is `main`.
 
-### Environment
-1. Azure Databricks? Do Git folders authenticate to ADO with Entra ID or a PAT?
-2. Git folders: one per person, or shared by several people?
-3. Notebooks in the repo: `.py` source format or `.ipynb`?
-4. Do you use Databricks Asset Bundles or ADO Pipelines? Which?
-5. How does code reach prod? (Job points at a branch/tag, bundle deploy, manual copy, other)
-6. VSCode: Source Control panel, terminal, or GitLens? Databricks extension or Databricks Connect?
-7. Work laptops: Windows or Mac?
+## Proposed scenarios (awaiting approval)
 
-### Workflow
-8. Branching today: commit straight to `main`, feature branches + PRs, or `dev`/`prod` branches? If nothing is settled, should the tutorial propose a model?
-9. Which ADO branch policies are on? (minimum reviewers, build validation, linked work items, comment resolution)
-10. PR completion merge type: merge, squash, rebase, or semi-linear?
-11. Do you link ADO Boards work items to commits/PRs?
-12. Is any Python code shared between VSCode and Databricks (e.g., a package imported in notebooks)? Same repo or separate?
-13. Conventions for branch names, commit messages, or ticket IDs? Give one example of each if so.
+**0. Mental model**
+- 0.1 Snapshots, commits, and the graph. Your clone vs. ADO; each Databricks Git folder is a separate clone.
 
-### Scenarios
-14. Mark the ones that happen to you, and add your own:
-    - a. Two people edit the same notebook → merge conflict
-    - b. Committed to `main` by accident
-    - c. A commit broke a scheduled job and must be undone
-    - d. Getting a teammate's changes into your Databricks Git folder
-    - e. Pull fails because of uncommitted changes
-    - f. Committed a secret, token, or data file
-    - g. Notebook outputs or large CSVs make diffs unreadable
-    - h. Urgent prod fix while a feature is half done
-    - i. Start work in VSCode, finish in Databricks (or the reverse)
-    - j. Reviewing and approving a teammate's PR
-    - k. PR blocked by a branch policy
-15. In one non-confidential line, what data and pipelines does the team work on? (Used to give examples realistic names.)
+**1. The daily loop**
+- 1.1 Clone `rules_engine` into Databricks and into VSCode.
+- 1.2 Branch, change, commit, push. Covers the staging area, which Databricks hides.
+- 1.3 Open a PR in ADO. Required reviewers approve, then complete with squash and delete the branch.
+- 1.4 After the squash: update local `main` and start a fresh branch. Shows why reusing a completed branch causes phantom conflicts.
+- 1.5 Get a teammate's changes (fetch vs. pull) in Databricks and in VSCode.
+- 1.6 A pull is refused because of uncommitted changes: commit, stash, or discard.
+- 1.7 "I committed on local `main`": ADO rejects the push, so move the work onto a branch.
 
-### Audience and scope
-16. Range of git experience on the team? (none / basic commit-push / some branching)
-17. Depth: essentials only (clone, branch, commit, pull, push, PR, conflicts), or also `revert`, `reset`, `stash`, `rebase`, `cherry-pick`?
-18. Do you want quizzes or knowledge checks? Do you need to know who has completed it? (Tracking that changes the design.)
+**2. Working together**
+- 2.1 Merge conflict on the same notebook: how two clones create one, how to resolve it in VSCode, and why `.ipynb` conflicts are painful.
+- 2.2 Reviewing a PR: read the diff, comment, then approve or wait for the author.
+- 2.3 Move work between VSCode and Databricks: push from one, pull in the other.
 
-### Practice repo
-19. Can you create a sandbox repo in ADO? Who can set branch policies on it?
-20. Where in ADO should the tutorial be mirrored? (org/project/repo name)
+**3. Fixing things**
+- 3.1 A completed PR broke `rules_engine - prod release`: ADO's **Revert** button creates a revert PR, then the pipeline redeploys. Squash makes this one clean commit to revert.
+- 3.2 Clean diffs: convert notebooks from `.ipynb` to `.py` source format and add a `.gitignore` for data and output files. Doubles as a real cleanup PR.
+
+**4. Words you'll hear**
+- 4.1 Rebase vs. merge vs. squash (diagrams).
+- 4.2 Cherry-pick: copy one commit onto another branch.
+
+**Appendix**
+- PAT errors: what an expired or invalid token looks like and where to renew it.
+- Windows notes: Git for Windows and line endings.
+
+**Not covered:** committing secrets (only touched on in 3.2's `.gitignore`), hotfix while a feature is in flight. A PR blocked by policy is folded into 1.3.
+
+## Open follow-ups
+
+1. **Branch policies:** In ADO, go to Repos → Branches, hover over `main`, then ⋯ → Branch policies. Report which are on: minimum number of reviewers, build validation, limit merge types, comment resolution.
+2. **Staging:** Does `rules_engine - staging release` also deploy from `main`? Does it run automatically when a PR completes, or is it started by hand?
+3. **Public repo:** OK for `rules_engine` / `mpa` names to appear in this public repo? If not, either make the repo private or use stand-in names.
+4. **Scenario list:** Approve, cut, or add.
